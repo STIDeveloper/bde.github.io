@@ -2607,7 +2607,7 @@ function tutoWin(){
   const mth = TUTO.then ? DATA.missions.find(x => x.id === TUTO.then) : null;
   const end = $("#qzEnd"); if (!end) return;
   end.innerHTML = '<div class="qz-win"><h3>🎉 Bravo, tu as compris '+esc(p.nom)+' !</h3><p class="who" style="margin-top:4px">'+(mth ? 'Tu peux maintenant prendre ta mission.' : 'Les missions de ce projet sont débloquées pour toi.')+'</p><div class="actions">'+
-    (mth ? '<button class="btn" data-act="prendre" data-id="'+esc(mth.id)+'">🙋 Prendre « '+esc(mth.titre)+' »</button>' : (() => { const f = defisActifs().find(x => x.projet === p.id && !myDefi(x.id)); return f ? '<button class="btn" data-act="close" data-dj="'+esc(f.id)+'">🏆 Rejoindre le défi</button>' : ''; })() + '<button class="btn'+(defisActifs().some(x => x.projet === p.id && !myDefi(x.id)) ? ' ghost' : '')+'" data-act="fmis" data-id="'+esc(p.id)+'">🙋 Voir les missions</button>')+
+    (mth ? '<button class="btn" data-act="prendre" data-id="'+esc(mth.id)+'">🙋 Prendre « '+esc(mth.titre)+' »</button>' : (() => { const f = defisActifs().find(x => x.projet === p.id && (parCfg(x) || !myDefi(x.id))); return f ? '<button class="btn" data-act="close" data-dj="'+esc(f.id)+'">🏆 Rejoindre le défi</button>' : ''; })() + '<button class="btn'+(defisActifs().some(x => x.projet === p.id && (parCfg(x) || !myDefi(x.id))) ? ' ghost' : '')+'" data-act="fmis" data-id="'+esc(p.id)+'">🙋 Voir les missions</button>')+
     '<button class="btn ghost" data-act="projet" data-id="'+esc(p.id)+'">La fiche du projet</button></div></div>';
   end.scrollIntoView({behavior:"smooth", block:"center"});
   renderPublic();
@@ -2977,6 +2977,63 @@ document.addEventListener("click", e => {
 
 /* ===================== 🏆 DÉFIS D'ÉQUIPE (compteur personnel visible par tous) ===================== */
 let DEFIS = [];
+/* 🔗 Défis RELIÉS AU SYSTÈME DE PARRAINAGE (ajout du 15/11) : pour un défi listé ici, plus de « +1 » manuel.
+   « Je deviens parrain » ouvre le formulaire de parrainage, et le classement vient du Google Sheet du parrainage
+   (membres de l'équipe uniquement, prénom + initiale, inscriptions vérifiées). Les anciens +1 ne sont pas effacés.
+   api  = URL de l'application Web du script de PARRAINAGE (…/exec), PAS celle du QG.
+   form = formulaire « Deviens parrain » (utilisé si le Sheet ne répond pas). */
+const PARRAINAGE = {
+  "defi-deliveroo": {
+    api: "https://script.google.com/macros/s/AKfycby81Q486827zo8Z1-LJxKW3f5aEAGM_nQX4gu5UVL4rICT_2MFg5YXhgu_iufVKUovjCw/exec",
+    form: "https://forms.gle/jeiJUFPQgy75McNf8"
+  }
+};
+const PAR_DATA = {};
+const parCfg = f => (f && Object.prototype.hasOwnProperty.call(PARRAINAGE, f.id)) ? PARRAINAGE[f.id] : null;
+async function loadParrainage(){
+  await Promise.all(Object.keys(PARRAINAGE).map(async did => {
+    const c = PARRAINAGE[did], prev = PAR_DATA[did];
+    if (!goodApi(c.api)){ PAR_DATA[did] = {err: true}; return; }
+    try {
+      const r = await fetch(String(c.api).trim() + "?a=top&t=" + Date.now(), {cache: "no-store"});
+      const j = await r.json();
+      if (j && j.ok) PAR_DATA[did] = j; else if (!prev || prev.err) PAR_DATA[did] = {err: true};
+    } catch(e){ if (!prev || prev.err) PAR_DATA[did] = {err: true}; }
+  }));
+}
+function startParrainage(){
+  if (!Object.keys(PARRAINAGE).length) return;
+  const go = () => loadParrainage().then(() => { if (!busy) rerenderLive(); }).catch(() => {});
+  go();
+  setInterval(() => { if (!document.hidden) go(); }, 120000);
+}
+function parForm(f){
+  const d = PAR_DATA[f.id], c = parCfg(f) || {};
+  return safeUrl(d && d.ok && d.formEquipe) || safeUrl(c.form);
+}
+function defiCardPar(f, full){
+  const d = PAR_DATA[f.id], ok = !!(d && d.ok), p = proj(f.projet);
+  const obj = num(f.objectif, 5), places = num(f.places, 10), goal = obj * places;
+  const open = defiOpen(f) && !(ok && d.ouvert === false), j = f.fin ? daysTo(f.fin) : null;
+  const rows = ok && Array.isArray(d.classement) ? d.classement : [], top = full ? rows : rows.slice(0, 5);
+  const total = ok ? Math.max(0, +d.totalEquipe || 0) : 0, att = ok ? Math.max(0, +d.attenteEquipe || 0) : 0, nb = ok ? Math.max(0, +d.participants || 0) : 0;
+  const medal = i => ["🥇","🥈","🥉"][i] || (i + 1) + ".";
+  const u = esc(f.unite || "inscriptions");
+  return '<div class="defi" style="--c:' + esc(p.c || "#5FD3B0") + '" data-defi="' + esc(f.id) + '">' +
+    '<div class="defi-h"><span class="tag hot">🏆 Défi d\'équipe' + (j !== null ? ' · ' + (open ? (j === 0 ? "dernier jour" : "J-" + j) : "terminé") : '') + '</span>' + (ok ? '<span class="who">' + nb + ' parrain' + (nb > 1 ? 's' : '') + ' dans l\'équipe</span>' : '') + '</div>' +
+    (full ? '' : '<h3>' + esc(p.e || "🏆") + ' ' + esc(f.titre) + '</h3>' + (f.texte ? '<p class="who">' + esc(String(f.texte).split("\n")[0]) + '</p>' : '')) +
+    (ok ? '<div class="defi-bar" role="img" aria-label="' + total + ' sur ' + goal + '"><i style="width:' + Math.min(100, Math.round(total / Math.max(1, goal) * 100)) + '%"></i></div>' +
+          '<p class="defi-tot"><b>' + total + '</b> / ' + goal + ' ' + u + ' vérifiées pour l\'équipe' + (att ? ' · ⏳ ' + att + ' en attente' : '') + '</p>'
+        : '<p class="who">' + (d ? '📊 Classement momentanément indisponible (le bouton marche quand même).' : '⏳ Chargement du classement…') + '</p>') +
+    (open ? '<div class="actions"><button type="button" class="btn" data-dj="' + esc(f.id) + '">🙋 Je deviens parrain</button></div>' +
+            '<p class="note">Déjà parrain ? Ton code et ton lien perso sont dans ton mail étudiant. Mail perdu : refais le formulaire avec la même adresse, on te le renvoie.</p>'
+          : '<p class="note">Le défi est terminé : merci à toutes et à tous 🙏</p>') +
+    (top.length ? '<ol class="defi-top">' + top.map((x, i) => '<li><span class="md">' + medal(i) + '</span><b>' + esc(x.n) + (x.conf ? '' : ' ⏳') + '</b><span class="mini"><i style="width:' + Math.min(100, Math.round((+x.ok || 0) / obj * 100)) + '%"></i></span><span class="sc">' + Math.max(0, +x.ok || 0) + '</span></li>').join("") + '</ol>'
+      : (ok ? '<p class="who">Personne pour l\'instant : sois le premier ou la première 💪</p>' : '')) +
+    (ok ? '<p class="note">Seules les inscriptions vérifiées comptent : le filleul a cliqué le lien reçu sur sa boîte étudiante. Mis à jour toutes les 2 min.' + (rows.some(x => !x.conf) ? ' ⏳ à côté d\'un prénom = membre pas encore confirmé par le bureau.' : '') + '</p>' : '') +
+    (full ? '' : '<div class="actions"><button type="button" class="btn small ghost" data-act="defi" data-id="' + esc(f.id) + '">Les règles, le lien et le classement →</button></div>') +
+  '</div>';
+}
 function setDefis(rows){
   DEFIS = (Array.isArray(rows) ? rows : []).filter(x => x && x.pid && x.did).map(x => ({pid: String(x.pid), did: String(x.did), prenom: String(x.prenom || "").slice(0,40) || "Quelqu'un", score: Math.max(0, Math.min(999, +x.score || 0)), at: String(x.at || "")}));
 }
@@ -2987,6 +3044,7 @@ const defiRows = id => DEFIS.filter(x => x.did === id).sort((a, b) => b.score - 
 const myDefi = id => DEFIS.find(x => x.did === id && x.pid === UID) || null;
 const defiLien = f => (((DATA.projets.find(x => x.id === f.projet) || {}).liens) || []).map(l => safeUrl(l && l[1])).filter(Boolean)[0] || "";
 function defiCard(f, full){
+  if (parCfg(f)) return defiCardPar(f, full);
   const rows = defiRows(f.id), mine = myDefi(f.id), obj = num(f.objectif, 5), places = num(f.places, 10);
   const total = rows.reduce((a, x) => a + x.score, 0), goal = obj * places;
   const p = proj(f.projet), open = defiOpen(f), can = open && SERVER_V >= 3 && !!API;
@@ -3022,6 +3080,16 @@ function renderDefis(){
 }
 async function defiOp(did, op){
   const f = (DATA.defis || []).find(x => x.id === did); if (!f) return;
+  if (parCfg(f)){
+    if (op !== "join") return;
+    if (!tutoOk(f.projet)){ toast("D'abord le tuto " + (proj(f.projet).nom || "") + " (2 min) 📘"); sheetTuto(f.projet, 0, null); return; }
+    const url = parForm(f);
+    if (!url){ toast("Le formulaire n'est pas disponible pour l'instant."); return; }
+    const w = window.open(url, "_blank");
+    if (w){ try { w.opener = null; } catch(e){} } else location.href = url;
+    toast("📝 Remplis le formulaire avec ton mail étudiant : ton code arrive par mail");
+    return;
+  }
   if (op === "join"){
     if (!tutoOk(f.projet)){ toast("D'abord le tuto " + (proj(f.projet).nom || "") + " (2 min) 📘"); sheetTuto(f.projet, 0, null); return; }
     const inp = document.querySelector('[data-dn="' + CSS.escape(did) + '"]');
@@ -3289,6 +3357,8 @@ function rowMeta(kind, x){
   if (kind === "missions"){ const p = proj(x.projet);
     return '<span class="tag">'+esc(STATUTS[x.statut]||x.statut)+'</span><span>avant le '+fmt(x.fin)+'</span>'+(p.nom ? '<span>· '+esc(p.e)+' '+esc(p.nom)+'</span>' : '')+(x.qui ? '<span>· 👤 '+esc(x.qui)+'</span>' : ''); }
   if (kind === "dates") return '<span>'+fmt(x.d)+' '+String(x.d||"").slice(0,4)+'</span><span>· '+(x.certain ? "confirmée" : "⏳ à confirmer")+'</span>'+(daysTo(x.d) < -1 ? '<span class="tag">passée</span>' : '');
+  if (kind === "defis" && parCfg(x)){ const pd = PAR_DATA[x.id];
+    return '<span>🔗 Relié au parrainage</span>'+(pd && pd.ok ? '<span>· '+(+pd.participants||0)+' parrains</span><span>· '+(+pd.totalEquipe||0)+' / '+(num(x.objectif,5)*num(x.places,10))+' vérifiées</span>' : '<span>· classement indisponible</span>')+(x.fin ? '<span>· '+(daysTo(x.fin) >= 0 ? "jusqu'au " : "fini le ")+fmt(x.fin)+'</span>' : ''); }
   if (kind === "defis"){ const rs = defiRows(x.id), tot = rs.reduce((a, r) => a + r.score, 0);
     return '<span>'+rs.length+' / '+num(x.places,10)+' participants</span><span>· '+tot+' / '+(num(x.objectif,5)*num(x.places,10))+'</span>'+(x.fin ? '<span>· '+(daysTo(x.fin) >= 0 ? "jusqu'au " : "fini le ")+fmt(x.fin)+'</span>' : '')+(rs.length ? '<button class="ib" data-adm="defi-reset" data-id="'+esc(x.id)+'">🧹 Compteurs à zéro</button>' : ''); }
   if (kind === "sondages"){ const nv = VOTES.filter(v => v.sid === x.id).length;
@@ -3786,7 +3856,10 @@ function weekText(){
   if (dates.length) L.push("", "📅 *Cette semaine*", ...dates.map(d => "• " + JOUR_C[parse(d.d).getDay()] + " " + fmt(d.d) + " : " + d.t + (d.s ? " (" + d.s + ")" : "") + (d.certain ? "" : " _à confirmer_")));
   if (libres.length) L.push("", "🟢 *Personne dessus pour l'instant*", ...libres.map(m => "• " + m.titre + pn(m.projet) + " · avant le " + fmt(m.fin)));
   if (polls.length) L.push("", "🗳️ *Sondage" + (polls.length > 1 ? "s" : "") + " en cours*", ...polls.map(s => "• " + s.q + (s.fin ? " (jusqu'au " + fmt(s.fin) + ")" : "")));
-  defisActifs().forEach(f => { const rs = defiRows(f.id), tot = rs.reduce((a, r) => a + r.score, 0);
+  defisActifs().forEach(f => { if (parCfg(f)){ const pd = PAR_DATA[f.id];
+      L.push("", "🏆 *" + f.titre + "*" + (pd && pd.ok ? " : " + (+pd.totalEquipe || 0) + " / " + (num(f.objectif, 5) * num(f.places, 10)) + " " + (f.unite || "inscriptions") + " vérifiées, " + (+pd.participants || 0) + " parrain" + ((+pd.participants || 0) > 1 ? "s" : "") : ""),
+        ...(pd && pd.ok ? (pd.classement || []).slice(0, 3).map((r, i) => ["🥇","🥈","🥉"][i] + " " + r.n + " : " + (+r.ok || 0)) : []), "👉 Deviens parrain depuis l'accueil du QG"); return; }
+    const rs = defiRows(f.id), tot = rs.reduce((a, r) => a + r.score, 0);
     L.push("", "🏆 *" + f.titre + "* : " + tot + " / " + (num(f.objectif, 5) * num(f.places, 10)) + " " + (f.unite || "inscriptions") + ", " + rs.length + " participant" + (rs.length > 1 ? "s" : ""), ...rs.slice(0, 3).map((r, i) => ["🥇","🥈","🥉"][i] + " " + r.prenom + " : " + r.score), "👉 Rejoins le défi sur l'accueil du QG"); });
   if (merci.length) L.push("", "👏 *Merci !*", ...merci.slice(0, 12));
   L.push("", "👉 Tout est sur le QG : " + siteUrl());
@@ -3805,7 +3878,8 @@ function adminEquipe(){
   const tf = t.reduce((a, x) => a + x.faites.length, 0);
   return '<div class="adm-sec"><div class="hd"><h2>🏅 Membres actifs</h2></div>' +
     '<p class="who">Compté à partir des prénoms sur les missions : ✅ faites (y compris celles supprimées depuis) et 👤 en cours. Aucun montant n\'apparaît.</p>' +
-    (DATA.defis || []).filter(vis).map(f => { const rs = defiRows(f.id); return '<div class="adm-help"><b>🏆 ' + esc(f.titre) + '</b><br>' + (rs.length ? rs.map((r, i) => (["🥇","🥈","🥉"][i] || (i + 1) + ".") + ' ' + esc(r.prenom) + ' : ' + r.score).join(" · ") : "Personne pour l'instant.") + '</div>'; }).join("") +
+    (DATA.defis || []).filter(vis).map(f => { if (parCfg(f)){ const pd = PAR_DATA[f.id]; return '<div class="adm-help"><b>🏆 ' + esc(f.titre) + '</b> <span class="who">(parrainage vérifié)</span><br>' + (pd && pd.ok ? ((pd.classement || []).length ? pd.classement.map((r, i) => (["🥇","🥈","🥉"][i] || (i + 1) + ".") + ' ' + esc(r.n) + ' : ' + (+r.ok || 0)).join(" · ") : "Personne pour l'instant.") : "Classement du parrainage indisponible.") + '</div>'; }
+      const rs = defiRows(f.id); return '<div class="adm-help"><b>🏆 ' + esc(f.titre) + '</b><br>' + (rs.length ? rs.map((r, i) => (["🥇","🥈","🥉"][i] || (i + 1) + ".") + ' ' + esc(r.prenom) + ' : ' + r.score).join(" · ") : "Personne pour l'instant.") + '</div>'; }).join("") +
     '<div class="actions"><button class="btn small" data-adm="eq-rapport">📋 Copier pour le rapport moral</button><button class="btn small ghost" data-adm="eq-merci">💬 Copier un message de remerciement</button></div>' +
     '<div class="fld"><label for="cf-merci">Tableau « 🏅 Merci à l\'équipe » sur le site (onglet Plus)</label><select id="cf-merci" data-cf="merciPublic"><option value=""' + (DATA.config.merciPublic === "oui" ? "" : " selected") + '>Non, seulement ici</option><option value="oui"' + (DATA.config.merciPublic === "oui" ? " selected" : "") + '>Oui, l\'afficher</option></select></div>' +
     (t.length ? '<p class="who"><b>' + t.length + '</b> personne' + (t.length > 1 ? 's' : '') + ' · <b>' + tf + '</b> mission' + (tf > 1 ? 's' : '') + ' faite' + (tf > 1 ? 's' : '') + '</p>' + t.map(x => '<details class="adm-row"><summary><span class="t">' + esc(x.nom) + '</span> <span class="tag ok">✅ ' + x.faites.length + '</span> <span class="tag">👤 ' + x.encours.length + '</span></summary>' +
@@ -4088,6 +4162,7 @@ window.addEventListener("beforeunload", e => { if (wasAdmin && dirty() && !busy)
     rerenderLive();
   }
   initLive();
+  startParrainage();
   if ("serviceWorker" in navigator && (location.protocol === "https:" || /^(localhost|127\.0\.0\.1)$/.test(location.hostname))) navigator.serviceWorker.register("sw.js").catch(() => {});
 })();
 })();

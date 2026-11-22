@@ -391,6 +391,35 @@ body[data-pane]:not([data-pane="accueil"]) .hero,body[data-pane]:not([data-pane=
 .tt-copy{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:10px 12px;display:grid;gap:8px}
 .tt-copy pre{margin:0;white-space:pre-wrap;word-break:break-word;font:inherit;font-size:14.5px;line-height:1.4;max-height:280px;overflow:auto}
 .tt-link{justify-self:start}
+/* ===== 🎯 Centres d'intérêt (21/11) ===== */
+.int-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.int-c{display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:9px 14px;font:inherit;font-size:15px;font-weight:600;line-height:1.25;text-align:left;max-width:100%}
+.int-c small{font-weight:500;font-size:12.5px;color:var(--muted)}
+.int-c[aria-pressed="true"]{border-color:var(--accent);background:var(--ok-bg);box-shadow:inset 0 0 0 1px var(--accent)}
+.int-c[aria-pressed="true"]::after{content:"✓";font-weight:800;color:var(--accent)}
+.int-f{margin-top:4px}.int-f .int-c{padding:6px 11px;font-size:14px}
+.int-box{padding-right:14px}
+.int-sum{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.tag.pt{background:transparent;border:1px solid var(--accent);color:var(--accent);padding:1px 8px}
+.draft-bar{position:sticky;top:0;z-index:60;background:#6D28D9;color:#fff;font-size:13px;font-weight:700;text-align:center;padding:6px 12px}
+/* ===== 🆕 Nouveautés + 🔔 notifications (22/11) ===== */
+.news{display:flex;align-items:center;gap:6px;margin-top:12px;background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:var(--r);padding:4px 4px 4px 10px}
+.news-b{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;background:none;border:0;color:var(--ink);text-align:left;font-size:14.5px;line-height:1.3;padding:8px 0}
+.news-go{margin-left:auto;color:var(--muted);font-size:22px;line-height:1}
+.news-p{flex:0 0 auto;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 10px;font-size:13px;font-weight:700}
+.news-x{flex:0 0 auto;background:none;border:0;color:var(--muted);font-size:15px;width:34px;height:34px}
+.mc-new{font-size:13px}
+.push-slot:empty{display:none}
+.push{display:grid;gap:4px;justify-items:start;margin-top:14px;padding:10px 12px;border-radius:12px;background:var(--bg);border:1px dashed var(--line)}
+.push.ok{border-style:solid;border-color:var(--accent)}
+.int-mail{margin-top:14px}
+.nt-list{display:grid;gap:6px}
+.adm-row.nt{grid-template-columns:auto minmax(0,1fr);align-items:start;cursor:pointer}
+.adm-row.nt input{width:20px;height:20px;margin-top:2px}
+.adm-row.nt .t{display:block}
+.nt-can label{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:14.5px}
+.nt-can input{width:18px;height:18px}
+.btn.armed{background:var(--hot);color:#fff}
 </style>
 </head><body>
 <script id="qg-conf">window.QG_API = "https://script.google.com/macros/s/AKfycbxk5lxm5igvltbGYg3LjWYbDq_C-24djBvTArF8pCi6wEZL3l1t0D2_Mf2QNl9nUVDF/exec";</script>
@@ -432,6 +461,7 @@ body[data-pane]:not([data-pane="accueil"]) .hero,body[data-pane]:not([data-pane=
   </section>
 
   <section class="pane" id="pane-plus" data-pane="plus">
+    <div id="plusMe"></div>
     <div id="plusPolls"></div>
     <div id="merci"></div>
     <div id="installBox"></div>
@@ -2188,6 +2218,14 @@ body[data-pane]:not([data-pane="accueil"]) .hero,body[data-pane]:not([data-pane=
 (function(){
 /* ===== Lien admin caché : ouvre le panneau de gestion ===== */
 const ADMIN_HASH = "#gestion-qg-7k3q9x";
+/* 🧪 BROUILLON = true : aperçu seulement. Le site LIT le Google Sheet mais n'y ÉCRIT rien
+   (prendre une mission, voter, centres d'intérêt, publier depuis l'admin… sont bloqués). Mettre false pour la vraie version. */
+const BROUILLON = false;
+let BR_T = 0;
+/* 🔔 Notifications sur le téléphone (OneSignal) : colle l'App ID de ton appli OneSignal entre les guillemets
+   (voir GUIDE_notifications.md, étape 7). Vide = rien ne change : pas de bouton 🔔, aucun script OneSignal chargé.
+   En brouillon, OneSignal n'est jamais chargé : le bouton est seulement simulé. */
+const ONESIGNAL_APP_ID = "";
 
 /* Squelette exact du document publié (ne pas modifier) */
 const SKEL = "<!doctype html><html lang=\"fr\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">";
@@ -2205,6 +2243,7 @@ const EMBV = +((EMB.config || {}).contenuV || 0);
 
 /* Montage du gabarit */
 document.body.appendChild(document.getElementById("qg-shell").content.cloneNode(true));
+if (BROUILLON){ const b = document.createElement("div"); b.className = "draft-bar"; b.textContent = "🧪 BROUILLON : rien n'est envoyé au Sheet"; document.body.prepend(b); }
 
 const TYPES = {terrain:"🏃 Terrain", com:"📣 Com", partenariat:"🤝 Partenaires", reflexion:"💡 Idées"};
 const GROUPES = [["en-cours","En cours"],["a-lancer","À lancer"],["fini","Terminé"],["annule","Annulé"]];
@@ -2240,7 +2279,9 @@ let filtre = "toutes";
 /* ===================== SERVEUR (Google Apps Script) =====================
    window.QG_API = l'URL de l'application Web (…/exec), écrite tout en haut du fichier.
    GET  ?a=all  → {ok, version, data, prises}
-   POST {a:"claim"|"save"|"delClaim"|"check", …} en texte JSON (pas de pré-vérification CORS). */
+   POST {a:"claim"|"save"|"delClaim"|"check", …} en texte JSON (pas de pré-vérification CORS).
+   🎯 21/11 : POST {a:"profil", cid, prenom, interets:[…]} (membre) et {a:"profils", key} (admin) → voir AJOUT_interets.gs.
+   📣 22/11 : profil accepte aussi « mail » ; POST {a:"notify", key, missions, canaux, url} (admin) → voir AJOUT_notifications.gs. */
 const API = String(window.QG_API || "").trim();
 let VERSION = "", REMOTE_EMPTY = false, pollT = null;
 const CID = (() => {
@@ -2261,7 +2302,9 @@ async function apiGet(url){
   if (!r.ok) throw new Error("http " + r.status);
   return r.json();
 }
+const brVue = b => { const o = Object.assign({}, b); if ("key" in o) o.key = o.key ? "••• (mot de passe masqué)" : "(vide)"; if (o.cid) o.cid = String(o.cid).slice(0, 4) + "… (" + String(o.cid).length + " caractères)"; if (o.data) o.data = "(tout le contenu du site)"; return o; };
 async function apiPost(body){
+  if (BROUILLON){ BR_T = Date.now(); try { console.log("🧪 Brouillon : envoi bloqué, rien ne part au Google Sheet →", JSON.stringify(brVue(body))); } catch(e){} toast("🧪 Brouillon : rien n'est envoyé au Google Sheet"); return {ok: false, code: "brouillon"}; }
   const r = await fetch(API, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body: JSON.stringify(body)});
   if (!r.ok) throw new Error("http " + r.status);
   return r.json();
@@ -2677,7 +2720,7 @@ function miniCard(m){
   const meta = (cls === "hot" && !/Bloq|Fait|Fini/.test(lab) ? "⚡ " : "") + lab + (m.duree ? " · ⏱ " + m.duree : "");
   return '<button class="mc' + gr(m) + '" style="--c:' + esc(p.c || "#5FD3B0") + '" data-act="mission" data-id="' + esc(m.id) + '">' +
     '<span class="mc-e" aria-hidden="true">' + esc(p.e || "📌") + '</span>' +
-    '<span class="mc-b"><span class="mc-t">' + esc(m.titre) + '</span><span class="mc-m"><span class="tag ' + pill[0] + '">' + esc(pill[1]) + '</span><span' + (cls === "hot" ? ' class="hot"' : '') + '>' + esc(meta) + '</span></span></span>' +
+    '<span class="mc-b"><span class="mc-t">' + (isNew(m) ? '<span class="mc-new" title="Nouvelle mission">🆕</span> ' : '') + esc(m.titre) + '</span><span class="mc-m"><span class="tag ' + pill[0] + '">' + esc(pill[1]) + '</span><span' + (cls === "hot" ? ' class="hot"' : '') + '>' + esc(meta) + '</span>' + tagPourToi(m) + '</span></span>' +
     '<span class="mc-go" aria-hidden="true">›</span></button>';
 }
 const blockH = (title, go, gof, label) => '<div class="bh"><h2>' + esc(title) + '</h2>' + (go ? '<button class="lk" data-go="' + go + '"' + (gof ? ' data-gof="' + gof + '"' : '') + '>' + esc(label) + ' →</button>' : '') + '</div>';
@@ -2712,11 +2755,12 @@ function renderAccueil(){
   const c = DATA.config;
   const act = M().filter(m => m.visible !== "grise" && m.statut !== "faite");
   const mine = M().filter(m => isMine(m) && m.statut !== "faite");
-  const libres = act.filter(m => eff(m).statut === "libre" && !isMine(m)).sort((a,b) => String(a.fin).localeCompare(String(b.fin)));
+  const libres = act.filter(m => eff(m).statut === "libre" && !isMine(m)).sort(triMissions);
   const nx = D().filter(d => daysTo(d.d) >= 0).sort((a,b) => a.d.localeCompare(b.d));
   const focus = ids(c.focusIds).map(id => P().find(p => p.id === id)).filter(Boolean);
-  let h = defisActifs().map(f => defiCard(f, false)).join("");
+  let h = newsBanner() + defisActifs().map(f => defiCard(f, false)).join("");
   if (mine.length) h += blockH("🙌 Tes missions", mine.length > 3 ? "missions" : "", "moi", "Toutes") + '<div class="mlist">' + mine.slice(0,3).map(miniCard).join("") + '</div>';
+  h += intCard();
   h += blockH("🙋 À prendre en ce moment", "missions", "toutes", libres.length > 3 ? "Les " + libres.length : "Toutes") +
     (libres.length ? '<div class="mlist">' + libres.slice(0,3).map(miniCard).join("") + '</div><p class="note" style="margin-top:6px">Touche une mission : on t\'explique tout, pas à pas.</p>'
       : '<p class="who">Toutes les missions ont quelqu\'un 🎉 Tu peux venir en renfort.</p>');
@@ -2763,7 +2807,7 @@ function renderMissions(){
   else if (filtre === "urgent") list = list.filter(m => daysTo(m.fin) <= 3 && m.visible !== "grise");
   else if (filtre.startsWith("p:")) list = list.filter(m => m.projet === filtre.slice(2));
   else if (TYPES[filtre]) list = list.filter(m => m.type === filtre);
-  list.sort((a,b) => (a.visible==="grise") - (b.visible==="grise") || String(a.fin).localeCompare(String(b.fin)));
+  list.sort(triMissions);
   $("#mList").innerHTML = list.length ? list.map(miniCard).join("")
     : '<p class="who">' + (filtre === "moi" ? "Tu n'as pas encore de mission. Choisis-en une dans « Toutes » 👆" : "Rien ici pour l'instant.") + "</p>";
 }
@@ -2809,6 +2853,7 @@ function recapText(){
 }
 
 function renderPlus(){
+  $("#plusMe").innerHTML = intPlusHTML();
   const ps = pollsVisible().sort((a,b) => pollOpen(b) - pollOpen(a));
   $("#plusPolls").innerHTML = ps.length ? '<div class="sh"><h2>🗳️ Sondages</h2></div>' + ps.map(pollHTML).join("") : "";
   $("#merci").innerHTML = DATA.config.merciPublic === "oui" ? merciHTML() : "";
@@ -2972,8 +3017,436 @@ document.addEventListener("click", e => {
   if (e.target.closest("[data-inst-x]")){ store.set("qg-inst-x", "1"); renderAccueil(); return; }
   if (e.target.closest("#meChange")){ meEdit = true; renderTop(); const i = $("#me"); if (i) i.focus(); return; }
 });
+/* ===================== 🎯 CENTRES D'INTÉRÊT (ajout du 21/11) =====================
+   Le membre coche ce qui lui plaît : les missions libres qui lui correspondent passent en premier, avec « 🎯 Pour toi ».
+   Ses choix sont gardés sur son téléphone ET envoyés au Google Sheet (onglet « profils », que seul l'admin peut lire).
+   Si le script Google n'est pas encore à jour, tout marche quand même : les choix restent sur le téléphone,
+   et ils sont renvoyés tout seuls à la visite suivante, une fois le script mis à jour.
+   ✏️ Pour changer la liste : une ligne par centre d'intérêt (id, emoji, nom, précision facultative).
+   L'id (minuscules, sans accent ni espace) ne doit plus changer une fois en ligne : c'est lui qui est enregistré.
+   Un NOUVEL id doit aussi être ajouté dans INTERETS_OK du script Google (sinon le script le refuse). */
+const INTERETS = [
+  {id:"visuels",      e:"🎨", nom:"Affiches & visuels"},
+  {id:"photos",       e:"📸", nom:"Photos & vidéos"},
+  {id:"reseaux",      e:"📱", nom:"Réseaux sociaux", plus:"stories, TikTok, Insta"},
+  {id:"terrain",      e:"🏃", nom:"Terrain & stands"},
+  {id:"partenariats", e:"🤝", nom:"Partenariats & bons plans"},
+  {id:"idees",        e:"💡", nom:"Idées & organisation"},
+  {id:"solidarite",   e:"🧣", nom:"Solidarité"},
+  {id:"voyages",      e:"✈️", nom:"Voyages & sorties"},
+  {id:"soirees",      e:"🎉", nom:"Soirées & événements"}
+];
+/* Calcul automatique « mission → centres d'intérêt », utilisé quand le champ « Thèmes » de la mission est vide.
+   Une mission peut avoir plusieurs centres d'intérêt : tout ce qui correspond s'additionne. */
+const INT_AUTO = {
+  /* catégorie de la mission */
+  type: {terrain:"terrain", partenariat:"partenariats", reflexion:"idees"},
+  /* projet de la mission (son identifiant) */
+  projet: {deliveroo:"partenariats", freeze:"partenariats", ornikar:"partenariats", chogan:"partenariats", eveco:"partenariats",
+    blablacar:"partenariats", lustucru:"partenariats", genz:"partenariats", partenariats:"partenariats", nescafe:"partenariats", heyme:"partenariats",
+    maraude:"solidarite", "vide-dressing":"solidarite", videdressing:"solidarite", smerra:"solidarite",
+    ski:"voyages", citytrip:"voyages", soiree:"soirees", alumni:"soirees", tiktok:"reseaux"},
+  /* mots du titre (écrits sans accents, en minuscules) ; 3e case = seulement pour cette catégorie */
+  mots: [
+    ["visuels", /\b(affiches?|flyers?|visuels?|canva|logo|bannieres?)\b/, "com"],
+    ["reseaux", /\b(story|stories|tiktok|insta\w*|posts?|poster|carrousels?|reels?|teaser)\b/],
+    ["photos", /\b(photos?|videos?|filmer|montage)\b/],
+    ["solidarite", /\b(maraude|solidaires?|solidarite|dressing|collecte)\b/],
+    ["voyages", /\b(ski|city ?trip|voyages?)\b/],
+    ["soirees", /\b(soirees?|gala|afterwork)\b/]
+  ]
+};
+const INT_KEY = "bde-interets", INT_VU = "bde-interets-vu";
+const intById = id => INTERETS.find(x => x.id === id);
+const intOrdre = arr => INTERETS.map(x => x.id).filter(id => arr.includes(id));
+let MYINT = (() => { try { const o = JSON.parse(store.get(INT_KEY) || "{}") || {};
+  return {ids: intOrdre(Array.isArray(o.ids) ? o.ids.map(String) : []), at: String(o.at || ""), sync: String(o.sync || ""), mail: String(o.mail || "")}; } catch(e){ return {ids: [], at: "", sync: "", mail: ""}; } })();
+const intStore = () => store.set(INT_KEY, JSON.stringify(MYINT));
+
+/* « visuels, reseaux », « 🎨 📱 » ou « Affiches, Réseaux sociaux » → ["visuels","reseaux"] */
+function interetsDe(txt){
+  const s = String(txt || ""), out = [];
+  const add = id => { if (id && !out.includes(id)) out.push(id); };
+  const cp = (a, b) => { let i = 0; while (i < a.length && i < b.length && a[i] === b[i]) i++; return i; };
+  INTERETS.forEach(x => { if (s.includes(x.e.replace(/️/g, ""))) add(x.id); });
+  s.split(/[,;\/|+\n]+/).forEach(part => {
+    const k = nrm(part).replace(/[^a-z0-9 -]/g, " ").replace(/\s+/g, " ").trim(); if (!k) return;
+    const exact = INTERETS.find(i => i.id === k || nrm(i.nom) === k); if (exact){ add(exact.id); return; }
+    k.split(" ").filter(w => w.length >= 4).forEach(w => {
+      const x = INTERETS.find(i => (i.id + " " + nrm(i.nom) + " " + nrm(i.plus || "")).split(/[^a-z0-9]+/).some(v => v.length >= 4 && cp(v, w) >= Math.min(5, v.length, w.length)));
+      if (x) add(x.id);
+    });
+  });
+  return intOrdre(out);
+}
+function intAuto(m){
+  const out = [], add = id => { if (id && !out.includes(id)) out.push(id); };
+  add(INT_AUTO.type[m.type]); add(INT_AUTO.projet[m.projet]);
+  const t = nrm(m.titre);
+  INT_AUTO.mots.forEach(([id, re, seul]) => { if ((!seul || m.type === seul) && re.test(t)) add(id); });
+  return intOrdre(out);
+}
+/* Le champ « Thèmes » de la mission (admin), s'il est rempli, remplace le calcul automatique */
+const intMission = m => { const own = String(m.themes || "").trim() ? interetsDe(m.themes) : []; return own.length ? own : intAuto(m); };
+const pourToi = m => MYINT.ids.length > 0 && m.visible !== "grise" && eff(m).statut === "libre" && !isMine(m) && intMission(m).some(id => MYINT.ids.includes(id));
+/* Tri : on garde les groupes d'urgence (3 jours ou moins, la semaine, plus tard, en pause) ; dans chaque groupe, « Pour toi » d'abord.
+   Sans centre d'intérêt choisi : exactement le même tri qu'avant. */
+const urgGrp = m => { if (!m.fin) return 2; const n = daysTo(m.fin); return n <= 3 ? 0 : n <= 7 ? 1 : 2; };
+const triMissions = (a, b) => (a.visible === "grise") - (b.visible === "grise") ||
+  (MYINT.ids.length ? urgGrp(a) - urgGrp(b) || pourToi(b) - pourToi(a) : 0) || String(a.fin).localeCompare(String(b.fin));
+const tagPourToi = m => pourToi(m) ? '<span class="tag pt">🎯 Pour toi</span>' : '';
+
+let INT_SEL = [], INT_MODE = "";
+const intChips = (sel, attr) => INTERETS.map(x => '<button type="button" class="int-c" ' + attr + '="' + esc(x.id) + '" aria-pressed="' + sel.includes(x.id) + '"><span aria-hidden="true">' + esc(x.e) + '</span><span>' + esc(x.nom) + (x.plus ? ' <small>' + esc(x.plus) + '</small>' : '') + '</span></button>').join("");
+function sheetInterets(mode){
+  INT_MODE = mode; INT_SEL = MYINT.ids.slice();
+  const start = mode === "start";
+  openSheet('<span style="font-size:34px" aria-hidden="true">🎯</span><h2 id="sheetTitle">' + (start ? "Qu'est-ce qui te plaît" + (me ? ", " + esc(me) : "") + " ?" : "Mes centres d'intérêt") + '</h2>' +
+    '<p class="who" style="margin-top:6px">Choisis 1 ou plusieurs, tu pourras changer après. Les missions qui te correspondent passeront en premier.</p>' +
+    (me ? '' : '<div class="q"><label for="intName"><h4>Ton prénom</h4></label><input id="intName" class="msg" placeholder="ex. Lou" autocomplete="given-name" maxlength="40"></div>') +
+    '<div class="int-grid" role="group" aria-label="Tes centres d\'intérêt">' + intChips(INT_SEL, "data-int") + '</div>' +
+    '<div class="q int-mail"><label for="intMail"><h4>📧 Ton mail pour être prévenu (facultatif)</h4></label><input id="intMail" class="msg" type="email" inputmode="email" autocomplete="email" maxlength="120" placeholder="ex. lou.martin@gmail.com" value="' + esc(MYINT.mail || "") + '"><p class="note" style="margin-top:4px">Max 1 mail par jour, seulement pour tes centres d\'intérêt. Désinscription en 1 clic.</p></div>' +
+    pushSlot() +
+    '<div class="actions" style="margin-top:16px"><button class="btn" type="button" data-int-save="1">' + (start ? "✅ C'est noté" : "✅ Enregistrer") + '</button><button class="btn ghost" type="button" data-int-skip="1">' + (start ? "Plus tard" : "Annuler") + '</button></div>' +
+    '<p class="note">🔒 Seuls toi et le bureau voient tes choix. Ils servent à te proposer les bonnes missions.</p>');
+}
+async function intSync(seulNom){   /* seulNom : changement de prénom, le mail déjà enregistré est gardé tel quel */
+  if (!API || (MYINT.ids.length && !me)) return "local";
+  try {
+    const res = await apiPost({a:"profil", cid: CID, prenom: String(me || "").slice(0,40), interets: MYINT.ids.slice(), ...(seulNom ? {} : {mail: MYINT.mail || ""})});
+    if (res && res.ok){ if (res.pid){ UID = res.pid; store.set("bde-pid", UID); } MYINT.sync = "ok"; intStore(); }
+    else { MYINT.sync = res && res.code === "unknown_action" ? "script" : "attente"; intStore(); }
+  } catch(e){ MYINT.sync = "attente"; intStore(); }
+  if (!$("#public").hidden) renderPlus();
+  return MYINT.sync;
+}
+/* Choix gardés sur le téléphone mais pas encore reçus par le Sheet (script pas à jour, pas de réseau) : on réessaie à la visite suivante */
+function intRetry(){ if (BROUILLON || !MYINT.at || MYINT.sync === "ok") return; intSync(); }
+function intSave(){
+  const inp = $("#intName");
+  if (inp){ const n = inp.value.trim(); if (!n && INT_SEL.length){ toast("Écris ton prénom 🙂"); inp.focus(); return; } if (n){ me = n; store.set("bde-me", n); } }
+  const mi = $("#intMail"); let mail = MYINT.mail || "";
+  if (mi){ mail = mi.value.trim(); if (mail && !mailOk(mail)){ toast("Ce mail ne semble pas valide 🙂"); mi.focus(); return; } }
+  const ids = intOrdre(INT_SEL);
+  if (INT_MODE === "start" && !ids.length){ toast("Choisis au moins une case, ou « Plus tard » 🙂"); return; }
+  MYINT = {ids, at: isoToday(), sync: "", mail}; intStore(); store.set(INT_VU, "1");
+  closeSheet(); renderPublic();
+  toast(ids.length ? "🎯 C'est noté ! Les missions pour toi passent en premier" : "C'est noté : aucun centre d'intérêt choisi");
+  intSync();
+  pushSyncTags();
+}
+function setMe(n){
+  const before = me; me = n; store.set("bde-me", me); meEdit = false; renderPublic();
+  if (!me || me === before) return;
+  if (MYINT.at){ MYINT.sync = ""; intStore(); intSync(true); }               /* nouveau prénom : on met à jour la fiche du Sheet */
+  else if (!store.get(INT_VU)){ store.set(INT_VU, "1"); sheetInterets("start"); }   /* 1re fois : l'étape « Qu'est-ce qui te plaît ? » */
+}
+/* Accueil : petite carte pour celles et ceux qui avaient déjà mis leur prénom avant cette mise à jour */
+function intCard(){
+  if (!me || MYINT.at || store.get(INT_VU)) return "";
+  return '<div class="inst"><button class="inst-x" data-int-x="1" aria-label="Masquer">✕</button><b>🎯 Qu\'est-ce qui te plaît ?</b><p class="who">Coche ce que tu aimes faire : les missions pour toi passeront en premier.</p><div class="actions"><button class="btn small" type="button" data-int-open="start">🎯 Choisir</button></div></div>';
+}
+/* Onglet Plus */
+function intPlusHTML(){
+  const ch = MYINT.ids.map(intById).filter(Boolean);
+  return '<div class="inst int-box"><b>Ce qui te plaît</b>' +
+    (ch.length ? '<div class="int-sum">' + ch.map(x => '<span class="tag">' + esc(x.e) + ' ' + esc(x.nom) + '</span>').join("") + '</div>'
+      : '<p class="who">Pas encore choisi. Dis-nous ce que tu aimes faire : les missions pour toi passeront en premier, avec « 🎯 Pour toi ».</p>') +
+    (MYINT.mail ? '<p class="who">📧 Prévenu·e par mail : ' + esc(MYINT.mail) + '</p>' : '') +
+    '<div class="actions"><button class="btn small" type="button" data-int-open="edit">🎯 Mes centres d\'intérêt</button></div>' + pushSlot() +
+    '<p class="note" style="margin-top:2px">🔒 Visible seulement par toi et le bureau.' + (MYINT.at && MYINT.sync !== "ok" ? ' Pour l\'instant, c\'est gardé sur ce téléphone.' : '') + '</p></div>';
+}
+document.addEventListener("click", e => {
+  const c = e.target.closest("[data-int]");
+  if (c){ const id = c.dataset.int; INT_SEL = INT_SEL.includes(id) ? INT_SEL.filter(x => x !== id) : INT_SEL.concat(id); c.setAttribute("aria-pressed", String(INT_SEL.includes(id))); return; }
+  const f = e.target.closest("[data-int-f]");
+  if (f){ f.setAttribute("aria-pressed", String(f.getAttribute("aria-pressed") !== "true"));
+    const box = f.closest(".fld"), hid = box && box.querySelector('input[data-f="themes"]');
+    if (hid) hid.value = Array.from(box.querySelectorAll('[data-int-f][aria-pressed="true"]')).map(b => b.dataset.intF).join(", ");
+    return; }
+  if (e.target.closest("[data-int-save]")){ intSave(); return; }
+  if (e.target.closest("[data-int-skip]")){ const st = INT_MODE === "start"; closeSheet(); if (st) toast("Pas de souci : tu pourras choisir quand tu veux dans l'onglet Plus ☰"); return; }
+  const o = e.target.closest("[data-int-open]");
+  if (o){ store.set(INT_VU, "1"); sheetInterets(o.dataset.intOpen === "start" ? "start" : "edit"); return; }
+  if (e.target.closest("[data-int-x]")){ store.set(INT_VU, "1"); renderAccueil(); toast("OK ! Tu pourras choisir quand tu veux dans l'onglet Plus ☰"); return; }
+});
+
+/* Admin : « 👥 Qui aime quoi » (lu dans l'onglet « profils » du Sheet, avec le mot de passe admin) */
+let PROFILS = null, profMsg = "";
+async function loadProfils(){
+  if (!API){ profMsg = "⛔ Le site n'est pas relié au Google Sheet."; if (tab === "interets" || tab === "prevenir") renderAdmin(); return; }
+  if (!adminKey() && !BROUILLON){ profMsg = "🔑 Entre d'abord ton mot de passe admin (en haut)."; if (tab === "interets" || tab === "prevenir") renderAdmin(); return; }
+  profMsg = "⏳ Chargement de la liste…"; if (tab === "interets" || tab === "prevenir") renderAdmin();
+  try {
+    const r = await apiPost({a:"profils", key: adminKey()});
+    if (r && r.ok){ PROFILS = Array.isArray(r.profils) ? r.profils : []; profMsg = ""; PROFINFO = {dernierEnvoi: String(r.dernierEnvoi || ""), dejaNotifiees: Array.isArray(r.dejaNotifiees) ? r.dejaNotifiees.map(String) : [], push: !!r.push, quota: typeof r.quota === "number" ? r.quota : null}; }
+    else if (r && r.code === "brouillon"){ PROFILS = MYINT.ids.length ? [{prenom: me || "Toi", interets: MYINT.ids.slice(), at: MYINT.at, mail: masqueMail(MYINT.mail), pret: true}] : [];
+      PROFINFO = {dernierEnvoi: "", dejaNotifiees: [], push: PUSH_ON, quota: null};
+      profMsg = "🧪 Brouillon : la liste n'est pas demandée au Google Sheet. Exemple avec les choix faits sur ce téléphone (onglet Plus → 🎯 Mes centres d'intérêt)."; }
+    else profMsg = r && r.code === "unknown_action" ? "⚠️ Mets à jour le script (voir GUIDE_interets.md). En attendant, les choix des membres restent sur leur téléphone."
+      : r && r.code === "bad_key" ? "⛔ Mot de passe refusé. Entre-le à nouveau en haut." : "⛔ Le serveur a répondu une erreur.";
+  } catch(e){ profMsg = "⛔ Pas de réponse du serveur Google."; }
+  if (tab === "interets" || tab === "prevenir") renderAdmin();
+}
+function profGroups(){
+  const by = {}; INTERETS.forEach(x => { by[x.id] = []; });
+  (PROFILS || []).forEach(p => { const n = String((p && p.prenom) || "").trim().slice(0,40); if (!n) return;
+    (Array.isArray(p.interets) ? p.interets : String(p.interets || "").split(",")).forEach(id => { id = String(id).trim();
+      if (by[id] && !by[id].some(y => y.toLowerCase() === n.toLowerCase())) by[id].push(n); }); });
+  Object.values(by).forEach(a => a.sort((x, y) => x.localeCompare(y, "fr")));
+  return by;
+}
+function profText(){
+  const by = profGroups(), L = ["🎯 *Qui aime quoi* (QG du BDE, au " + fmt(isoToday()) + ")", ""];
+  INTERETS.forEach(x => { if (by[x.id].length) L.push(x.e + " " + x.nom + " : " + by[x.id].join(", ")); });
+  return L.join("\n");
+}
+function adminInterets(){
+  if (PROFILS === null && !profMsg) setTimeout(loadProfils, 0);
+  const by = profGroups(), n = (PROFILS || []).length;
+  const libres = id => M().filter(m => m.visible !== "grise" && eff(m).statut === "libre" && intMission(m).includes(id)).length;
+  return '<div class="adm-sec"><div class="hd"><h2>👥 Qui aime quoi</h2><button class="btn small ghost" data-adm="int-reload">🔄 Actualiser</button></div>' +
+    '<p class="who">Ce que les membres ont coché dans « 🎯 Mes centres d\'intérêt » (onglet Plus du site). Pratique pour savoir à qui proposer une mission, sans écrire à tout le monde. Seul l\'admin voit cette liste : elle vient de l\'onglet « profils » du Google Sheet.</p>' +
+    (profMsg ? '<div class="sugg' + (/^(⛔|⚠️)/.test(profMsg) ? " hot" : "") + '">' + esc(profMsg) + '</div>' : '') +
+    (PROFILS ? '<p class="who"><b>' + n + '</b> membre' + (n > 1 ? 's ont' : ' a') + ' répondu.</p>' + mailsHTML() +
+      INTERETS.map(x => { const l = libres(x.id), ns = by[x.id];
+        return '<div class="adm-row"><div><div class="t">' + esc(x.e) + ' ' + esc(x.nom) + ' <span class="tag">' + ns.length + '</span></div>' +
+          '<div class="m"><span>' + (ns.length ? esc(ns.map(nm => nm + (profMails().has(nm.toLowerCase()) ? " 📧" : "")).join(", ")) : "Personne pour l'instant.") + '</span></div>' +
+          (l ? '<div class="m"><span>🙋 ' + l + ' mission' + (l > 1 ? 's' : '') + ' à prendre sur ce thème</span></div>' : '') + '</div></div>'; }).join("") +
+      '<div class="actions"><button class="btn small" data-adm="int-copy"' + (n ? '' : ' disabled') + '>📋 Copier</button></div>' +
+      '<p class="note">« Copier » donne une liste prête à coller dans WhatsApp, par exemple « 🎨 Affiches & visuels : Marilou, Hugo ». Relis-la avant de l\'envoyer.</p>' : '') +
+    '</div>';
+}
 
 
+
+/* ===================== 🆕 NOUVEAUTÉS + 🔔 NOTIFICATIONS (ajout du 22/11) =====================
+   🆕 Le téléphone retient les missions déjà vues : à la visite suivante, une bannière montre les nouvelles
+      (celles qui ont une date de création « cree »). Au tout premier passage, on retient seulement.
+   🔔 Notifications sur le téléphone avec OneSignal (ONESIGNAL_APP_ID tout en haut du script). En brouillon : simulées. */
+const NEWS_KEY = "bde-vu-missions";
+let NEWS = null, NEWS_X = false;   /* null = pas encore calculé */
+function newsInit(){
+  if (NEWS !== null) return;
+  let vu = null; try { vu = JSON.parse(store.get(NEWS_KEY) || "null"); } catch(e){ vu = null; }
+  if (vu && Array.isArray(vu.ids)){
+    const known = new Set(vu.ids), depuis = addDays(String(vu.at || isoToday()), -14);
+    NEWS = M().filter(m => m.id && m.cree && m.cree >= depuis && !known.has(m.id) && m.visible !== "grise" && m.statut !== "faite").map(m => m.id);
+  } else NEWS = [];
+  store.set(NEWS_KEY, JSON.stringify({ids: M().map(m => m.id).filter(Boolean).slice(-600), at: isoToday()}));
+  if (BROUILLON) console.log("🧪 Nouveautés : " + NEWS.length + " nouvelle(s) mission(s) depuis la dernière visite", NEWS);
+}
+const profMails = () => new Set((PROFILS || []).filter(p => p && p.mail).map(p => String(p.prenom || "").trim().toLowerCase()));
+function mailsHTML(){ const l = (PROFILS || []).filter(p => p && p.mail); if (!l.length) return "";
+  return '<details class="adm-help"><summary><b>📧 ' + l.length + ' membre' + (l.length > 1 ? 's ont laissé leur' : ' a laissé son') + ' mail</b></summary><p>' + l.map(p => esc(p.prenom) + ' : ' + esc(p.mail)).join('<br>') + '</p><p class="note">Adresses masquées. Elles sont en entier dans l\'onglet « profils » du Google Sheet, qui reste privé au bureau.</p></details>'; }
+const isNew = m => !!(NEWS && NEWS.includes(m.id));
+const newsMissions = () => (NEWS || []).map(id => DATA.missions.find(m => m.id === id)).filter(m => m && vis(m) && m.visible !== "grise" && m.statut !== "faite");
+function newsBanner(){
+  const ms = NEWS_X ? [] : newsMissions(); if (!ms.length) return "";
+  const pt = ms.filter(pourToi).length, s = ms.length > 1 ? "s" : "";
+  return '<div class="news"><button type="button" class="news-b" data-news="1">🆕 <span><b>' + ms.length + ' nouvelle' + s + ' mission' + s + '</b> depuis ta dernière visite' + (pt ? ', dont ' + pt + ' pour toi' : '') + '</span><span class="news-go" aria-hidden="true">›</span></button>' +
+    (pushEtat() === "off" ? '<button type="button" class="news-p" data-push-on="1">🔔 Me prévenir</button>' : '') +
+    '<button type="button" class="news-x" data-news-x="1" aria-label="Masquer">✕</button></div>';
+}
+function sheetNews(){
+  const ms = newsMissions().sort((a, b) => pourToi(b) - pourToi(a) || triMissions(a, b));
+  const pt = ms.filter(pourToi).length;
+  openSheet('<span style="font-size:34px" aria-hidden="true">🆕</span><h2 id="sheetTitle">Les nouveautés</h2>' +
+    '<p class="who" style="margin-top:6px">Les missions ajoutées depuis ta dernière visite' + (pt ? ' : celles 🎯 pour toi d\'abord.' : '.') + '</p>' +
+    (ms.length ? '<div class="mlist" style="margin-top:12px">' + ms.map(miniCard).join("") + '</div>' : '<p class="who">Plus rien de nouveau pour l\'instant.</p>') +
+    pushSlot() + '<div class="actions"><button class="btn ghost" data-act="go-missions">Toutes les missions</button></div>');
+}
+
+/* ---------- 🔔 Notifications sur le téléphone (OneSignal Web SDK v16) ---------- */
+const PUSH_ID = String(ONESIGNAL_APP_ID || "").trim();
+const PUSH_ON = !!PUSH_ID;          /* vide = rien ne s'affiche */
+const PUSH_KEY = "bde-push";
+const mailOk = s => { s = String(s || "").trim(); return s.length <= 120 && !/^[-+=@]/.test(s) && /^[^\s@<>"',;]+@[^\s@<>"',;]+\.[A-Za-z]{2,}$/.test(s); };
+const isIOSnoHome = () => isIOS() && !standalone();
+const pushSupported = () => { try { return "Notification" in window && "serviceWorker" in navigator && "PushManager" in window; } catch(e){ return false; } };
+function pushEtat(){
+  if (!PUSH_ON) return "";
+  if (isIOSnoHome()) return "ios";
+  if (!pushSupported()) return "non";
+  const p = window.Notification.permission;
+  if (p === "denied") return "refuse";
+  if (store.get(PUSH_KEY) === "1" && (p === "granted" || BROUILLON)) return "ok";
+  return "off";
+}
+function pushHTML(){
+  const s = pushEtat(); if (!s) return "";
+  if (s === "ok") return '<div class="push ok"><b>🔔 Activé</b><span class="who">Ce téléphone sera prévenu des nouvelles missions pour toi.</span></div>';
+  if (s === "ios") return '<div class="push"><b>🔔 Être prévenu sur ce téléphone</b><span class="who">Sur iPhone : ajoute d\'abord le QG à ton écran d\'accueil (Partager → Sur l\'écran d\'accueil), puis rouvre-le depuis l\'icône.</span></div>';
+  if (s === "non") return '<div class="push"><span class="who">🔕 Ce navigateur ne peut pas recevoir de notifications. Le mail, lui, marche partout.</span></div>';
+  if (s === "refuse") return '<div class="push"><b>🔕 Notifications refusées : réactive-les dans les réglages du navigateur</b><span class="who">Puis recharge la page.</span></div>';
+  return '<div class="push"><button type="button" class="btn small" data-push-on="1">🔔 Me prévenir sur ce téléphone</button><span class="who">Une notification quand une mission pour toi arrive. Rien d\'autre.</span></div>';
+}
+const pushSlot = () => PUSH_ON ? '<div class="push-slot">' + pushHTML() + '</div>' : '';
+function pushRefresh(){ document.querySelectorAll(".push-slot").forEach(el => { el.innerHTML = pushHTML(); }); if (!$("#public").hidden) renderAccueil(); }
+let OS = null, osP = null;
+function pushLoad(){
+  if (!PUSH_ON || BROUILLON || osP || !pushSupported() || isIOSnoHome()) return osP;
+  osP = new Promise(res => {
+    const base = location.pathname.replace(/[^\/]*$/, "");   /* ex. « /qg-bde/ » sur GitHub Pages */
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async function(O){
+      try {
+        await O.init({appId: PUSH_ID, autoResubscribe: true,
+          serviceWorkerPath: base.slice(1) + "push/onesignal/OneSignalSDKWorker.js",
+          serviceWorkerParam: {scope: base + "push/onesignal/"},
+          allowLocalhostAsSecureOrigin: /^(localhost|127\.0\.0\.1)$/.test(location.hostname)});
+        OS = O; res(O);
+      } catch(e){ console.warn("OneSignal :", e); res(null); }
+    });
+    const s = document.createElement("script"); s.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"; s.defer = true; s.onerror = () => res(null);
+    document.head.appendChild(s);
+  });
+  return osP;
+}
+/* tags OneSignal = les identifiants des centres d'intérêt (« visuels » : "1"…), jamais le prénom */
+function pushSyncTags(){
+  if (!PUSH_ON || store.get(PUSH_KEY) !== "1") return;
+  const add = {}, del = [];
+  INTERETS.forEach(x => { if (MYINT.ids.includes(x.id)) add[x.id] = "1"; else del.push(x.id); });
+  if (BROUILLON){ console.log("🧪 Brouillon : tags OneSignal qui seraient envoyés →", JSON.stringify({ajouter: add, retirer: del})); return; }
+  if (!OS) return;
+  try { if (Object.keys(add).length) OS.User.addTags(add); if (del.length) OS.User.removeTags(del); } catch(e){ console.warn("OneSignal tags :", e); }
+}
+async function pushOn(){
+  const s = pushEtat();
+  if (s !== "off" && s !== "ok"){ pushRefresh(); return; }
+  if (BROUILLON){
+    console.log("🧪 Brouillon : ici, le téléphone demanderait la permission (OneSignal.Notifications.requestPermission), puis s'abonnerait. App ID :", PUSH_ID);
+    store.set(PUSH_KEY, "1"); pushSyncTags(); toast("🧪 Brouillon : aucune vraie notification"); pushRefresh(); return;
+  }
+  const O = OS || await pushLoad();
+  if (!O){ toast("Les notifications ne sont pas disponibles pour l'instant. Réessaie plus tard."); return; }
+  try {
+    await O.Notifications.requestPermission();
+    if (!O.Notifications.permission){
+      toast(window.Notification && Notification.permission === "denied" ? "Notifications refusées : réactive-les dans les réglages du navigateur" : "Pas de souci, tu pourras activer plus tard");
+      pushRefresh(); return;
+    }
+    await O.User.PushSubscription.optIn();
+    store.set(PUSH_KEY, "1"); pushSyncTags();
+    toast("🔔 C'est activé ! Tu seras prévenu·e des missions pour toi");
+  } catch(e){ console.warn("OneSignal :", e); toast("Ça n'a pas marché, réessaie dans un instant."); }
+  pushRefresh();
+}
+function pushStart(){
+  if (!PUSH_ON) return;
+  if (BROUILLON){ console.log("🧪 Brouillon : OneSignal n'est jamais chargé (App ID rempli : " + PUSH_ID.slice(0, 8) + "…). Le bouton 🔔 est simulé."); return; }
+  const p = pushLoad(); if (p) p.then(O => { if (O) pushSyncTags(); });
+}
+document.addEventListener("click", e => {
+  if (e.target.closest("[data-push-on]")){ pushOn(); return; }
+  if (e.target.closest("[data-news]")){ sheetNews(); return; }
+  if (e.target.closest("[data-news-x]")){ NEWS_X = true; renderAccueil(); return; }
+});
+
+/* ---------- Admin : « 📣 Nouveautés » (annonce WhatsApp + prévenir par mail / notification) ---------- */
+const ANN_KEY = "qg-annonce";
+let ANN_PER = "", annTxt = null, NOTIF_PER = "notif", NOTIF_OFF = new Set(), NOTIF_CAN = {mail: true, push: true}, notifMsg = "", notifBusy = false, PROFINFO = null;
+const annInfo = () => { try { const o = JSON.parse(store.get(ANN_KEY) || "null"); return o && o.at ? o : null; } catch(e){ return null; } };
+const masqueMail = m => { const s = String(m || ""), i = s.indexOf("@"); return i < 1 ? "" : s[0] + "***" + s.slice(i); };
+/* seulement ce que l'équipe voit déjà (la version publiée), pas le brouillon de l'admin */
+const pubMissions = () => { try { return normalize(JSON.parse(BASE)).missions; } catch(e){ return DATA.missions; } };
+function nouvelles(depuis, exclure){
+  const ex = new Set(exclure || []);
+  return pubMissions().filter(m => m && m.id && vis(m) && m.visible !== "grise" && m.statut !== "faite" && eff(m).statut === "libre" && m.cree && (!depuis || m.cree >= depuis) && !ex.has(m.id))
+    .sort((a, b) => String(a.fin).localeCompare(String(b.fin)));
+}
+function annMissions(){
+  const ai = annInfo(), per = ANN_PER || (ai ? "annonce" : "7j");
+  return per === "annonce" && ai ? nouvelles(String(ai.at).slice(0, 10), ai.ids) : nouvelles(addDays(isoToday(), -7));
+}
+function annText(ms){
+  const groups = INTERETS.map(x => ({x, ms: []})), autres = [];
+  ms.forEach(m => { const g = groups.find(y => y.x.id === intMission(m)[0]); (g ? g.ms : autres).push(m); });
+  const line = m => { const aussi = intMission(m).slice(1).map(id => intById(id).e).join("");
+    return "• " + m.titre + (m.duree ? " · ⏱ " + m.duree : "") + (m.fin ? " · avant le " + fmt(m.fin) : "") + (aussi ? " (aussi " + aussi + ")" : ""); };
+  const L = ["🆕 *Nouveau sur le QG du BDE*", ""];
+  groups.forEach(g => { if (g.ms.length) L.push(g.x.e + " *" + g.x.nom + "*", ...g.ms.map(line), ""); });
+  if (autres.length) L.push("📌 *Autres missions*", ...autres.map(line), "");
+  L.push("👉 Prends-en une sur le QG : " + siteUrl());
+  return L.join("\n");
+}
+function notifMissions(){
+  const d = PROFINFO && PROFINFO.dernierEnvoi ? String(PROFINFO.dernierEnvoi).slice(0, 10) : "";
+  return NOTIF_PER === "7j" || !d ? nouvelles(addDays(isoToday(), -7)) : nouvelles(d, (PROFINFO && PROFINFO.dejaNotifiees) || []);
+}
+const notifSel = () => notifMissions().filter(m => !NOTIF_OFF.has(m.id));
+function notifApercu(ms){
+  const th = new Set(); ms.forEach(m => intMission(m).forEach(t => th.add(t)));
+  const avec = (PROFILS || []).filter(p => p && p.mail && (Array.isArray(p.interets) ? p.interets : []).some(t => th.has(t)));
+  return {themes: intOrdre(Array.from(th)), mails: avec.filter(p => p.pret !== false).length, deja: avec.filter(p => p.pret === false).length};
+}
+const fmtIso = v => { const x = new Date(v); return isNaN(x) ? String(v) : x.getDate() + " " + MOIS[x.getMonth()] + " à " + p2(x.getHours()) + "h" + p2(x.getMinutes()); };
+function adminPrevenir(){
+  if (PROFILS === null && !profMsg) setTimeout(loadProfils, 0);
+  const ai = annInfo(), per = ANN_PER || (ai ? "annonce" : "7j"), ams = annMissions();
+  if (annTxt === null) annTxt = ams.length ? annText(ams) : "";
+  const chip = (attr, k, cur, l, dis) => '<button class="chip" data-adm="' + attr + '" data-v="' + k + '" aria-pressed="' + (cur === k) + '"' + (dis ? ' disabled' : '') + '>' + l + '</button>';
+  let h = '<div class="adm-sec"><div class="hd"><h2>📋 L\'annonce des nouveautés</h2></div>' +
+    '<p class="who">Un message prêt à coller dans le canal Annonces : les nouvelles missions à prendre, rangées par centre d\'intérêt. Seules les missions déjà publiées comptent.</p>' +
+    '<div class="chips">' + chip("ann-per", "annonce", per, "Depuis la dernière annonce copiée" + (ai ? " (" + fmt(String(ai.at).slice(0, 10)) + ")" : ""), !ai) + chip("ann-per", "7j", per, "7 derniers jours") + '</div>' +
+    (ams.length ? '<p class="who"><b>' + ams.length + '</b> mission' + (ams.length > 1 ? 's' : '') + ' à annoncer.</p>' +
+      '<div class="fld"><label for="annTxt">Ton message (tu peux le modifier)</label><textarea id="annTxt" style="min-height:240px;font-size:14px">' + esc(annTxt) + '</textarea></div>' +
+      '<div class="actions"><button class="btn small" data-adm="ann-copy">📋 Copier l\'annonce des nouveautés</button><a class="btn small ghost" id="annWa" href="https://wa.me/?text=' + encodeURIComponent(annTxt) + '" target="_blank" rel="noopener">💬 Ouvrir WhatsApp</a><button class="btn small ghost" data-adm="ann-reset">🔄 Refaire</button></div>'
+      : '<div class="sugg ok">Pas de nouvelle mission à prendre sur cette période. Une mission compte comme nouvelle grâce à sa date de création (les missions ajoutées depuis l\'admin en ont une).</div>') +
+    '<p class="note">« Copier » retient la date sur ce téléphone : la prochaine fois, seules les missions ajoutées depuis seront proposées. Le lien du QG à la fin est celui du site, jamais le lien admin.</p></div>';
+  const ms = notifMissions(), sel = ms.filter(m => !NOTIF_OFF.has(m.id)), ap = notifApercu(sel), push = !!(PROFINFO && PROFINFO.push);
+  h += '<div class="adm-sec" style="margin-top:18px"><div class="hd"><h2>📣 Prévenir les membres</h2><button class="btn small ghost" data-adm="int-reload">🔄 Actualiser</button></div>' +
+    '<p class="who">Un mail (à ceux qui ont laissé leur mail) et une notification (sur les téléphones où elle est activée), seulement aux membres dont les centres d\'intérêt correspondent. Rien ne part sans ton clic. Maximum 1 mail par personne et par 24 h.</p>' +
+    (profMsg ? '<div class="sugg' + (/^(⛔|⚠️)/.test(profMsg) ? " hot" : "") + '">' + esc(profMsg) + '</div>' : '') +
+    (PROFILS ? '<p class="who">Dernière notification : <b>' + (PROFINFO && PROFINFO.dernierEnvoi ? esc(fmtIso(PROFINFO.dernierEnvoi)) : "jamais") + '</b>' + (PROFINFO && typeof PROFINFO.quota === "number" ? ' · mails encore possibles aujourd\'hui : ' + PROFINFO.quota : '') + '</p>' +
+      '<div class="chips">' + chip("notif-per", "notif", NOTIF_PER, "Depuis la dernière notification") + chip("notif-per", "7j", NOTIF_PER, "7 derniers jours") + '</div>' +
+      (ms.length ? '<div class="nt-list">' + ms.map(m => '<label class="adm-row nt"><input type="checkbox" data-notif-m="' + esc(m.id) + '"' + (NOTIF_OFF.has(m.id) ? '' : ' checked') + '><span><span class="t">' + esc(m.titre) + '</span><span class="m"><span>' + esc(intMission(m).map(id => intById(id).e).join("") || "📌") + '</span>' + (m.fin ? '<span>· avant le ' + fmt(m.fin) + '</span>' : '') + (m.duree ? '<span>· ⏱ ' + esc(m.duree) + '</span>' : '') + '</span></span></label>').join("") + '</div>' +
+        '<div class="actions nt-can"><label><input type="checkbox" data-notif-can="mail"' + (NOTIF_CAN.mail ? ' checked' : '') + '> 📧 Mail</label><label><input type="checkbox" data-notif-can="push"' + (NOTIF_CAN.push ? ' checked' : '') + '> 🔔 Notification</label></div>' +
+        '<div class="sugg' + (sel.length ? '' : ' hot') + '"><div>' + (sel.length ?
+          (NOTIF_CAN.mail ? '📧 <b>' + ap.mails + '</b> personne' + (ap.mails > 1 ? 's' : '') + ' recevr' + (ap.mails > 1 ? 'ont' : 'a') + ' un mail' + (ap.deja ? ' (' + ap.deja + ' déjà prévenue' + (ap.deja > 1 ? 's' : '') + ' dans les 24 h : rien pour elle' + (ap.deja > 1 ? 's' : '') + ')' : '') + '.' : '📧 Pas de mail.') + '<br>' +
+          (NOTIF_CAN.push ? (push ? '🔔 Une notification pour les téléphones abonnés à : ' + esc(ap.themes.map(id => intById(id).e).join(" ") || "aucun thème") + '.' : '🔔 Notifications pas encore réglées dans le script (voir GUIDE_notifications.md) : seuls les mails partiront.') : '🔔 Pas de notification.')
+          : 'Coche au moins une mission.') + '</div></div>' +
+        '<div class="actions"><button class="btn" data-adm="notif-send"' + (sel.length && !notifBusy && (NOTIF_CAN.mail || NOTIF_CAN.push) ? '' : ' disabled') + '>📣 Prévenir les membres</button></div>'
+        : '<div class="sugg ok">Pas de nouvelle mission à prendre depuis la dernière notification. Choisis « 7 derniers jours » pour en revoir.</div>') : '') +
+    (notifMsg ? '<div class="sugg' + (/^(⛔|⚠️)/.test(notifMsg) ? ' hot' : /^✅/.test(notifMsg) ? ' ok' : '') + '">' + esc(notifMsg) + '</div>' : '') +
+    '<p class="note">Une personne ne reçoit jamais deux fois la même mission par mail. Les adresses restent dans le Google Sheet du bureau : elles ne s\'affichent jamais ici en entier.</p></div>';
+  return h;
+}
+function notifResume(r){
+  const m = r.mail || {}, p = r.push || {}, out = [];
+  if (m.actif === false) out.push("📧 Mail non demandé");
+  else out.push("📧 " + (+m.envoyes || 0) + " mail" + ((+m.envoyes || 0) > 1 ? "s" : "") + " envoyé" + ((+m.envoyes || 0) > 1 ? "s" : "") +
+    (m.deja24h ? ", " + m.deja24h + " déjà prévenu(s) dans les 24 h" : "") + (m.restants ? ", ⚠️ " + m.restants + " pas envoyé(s) : quota Gmail du jour atteint, réessaie demain avec « 7 derniers jours »" : "") + (m.erreurs ? ", " + m.erreurs + " erreur(s)" : ""));
+  if (p.desactive) out.push("🔔 Notifications pas réglées dans le script");
+  else if (Array.isArray(p.envois)) out.push("🔔 " + (p.envois.length ? p.envois.map(x => (intById(x.interet) || {e: x.interet}).e + (x.ok ? (x.personne ? " personne d'abonné" : " ✅") : " ⛔ " + (x.err || ""))).join(" · ") : "aucune notification à envoyer"));
+  return (/⛔|⚠️/.test(out.join(" ")) ? "⚠️ " : "✅ ") + out.join(". ") + ".";
+}
+async function notifSend(){
+  const ms = notifSel(), canaux = Object.keys(NOTIF_CAN).filter(k => NOTIF_CAN[k]);
+  if (!ms.length || !canaux.length || notifBusy) return;
+  notifBusy = true; notifMsg = "⏳ Envoi en cours… ça peut prendre une minute, ne ferme pas la page."; renderAdmin();
+  try {
+    const r = await apiPost({a: "notify", key: adminKey(), missions: ms.slice(0, 30).map(m => ({id: m.id, titre: m.titre, duree: m.duree || "", fin: m.fin || "", themes: intMission(m)})), canaux, url: siteUrl(), api: API});
+    if (r && r.ok){ notifMsg = notifResume(r); NOTIF_OFF = new Set(); PROFILS = null; profMsg = ""; notifBusy = false; loadProfils(); return; }
+    notifMsg = r && r.code === "brouillon" ? "🧪 Brouillon : rien n'est envoyé (ni mail, ni notification). L'appel qui serait envoyé est affiché dans la console."
+      : r && r.code === "unknown_action" ? "⚠️ Mets à jour le script (voir GUIDE_notifications.md)."
+      : r && r.code === "bad_key" ? "⛔ Mot de passe refusé. Entre-le à nouveau en haut."
+      : r && r.code === "busy" ? "⏳ Le serveur est occupé : réessaie dans quelques secondes."
+      : "⛔ Le serveur a répondu une erreur (" + ((r && r.code) || "?") + ").";
+  } catch(e){ notifMsg = "⛔ Pas de réponse du serveur Google. Des mails sont peut-être partis : regarde la colonne « dernier_mail » de l'onglet « profils » avant de réessayer."; }
+  notifBusy = false; renderAdmin();
+}
+document.addEventListener("change", e => {
+  const m = e.target.closest("[data-notif-m]");
+  if (m){ if (m.checked) NOTIF_OFF.delete(m.dataset.notifM); else NOTIF_OFF.add(m.dataset.notifM); renderAdmin(); return; }
+  const c = e.target.closest("[data-notif-can]");
+  if (c){ NOTIF_CAN[c.dataset.notifCan] = c.checked; renderAdmin(); }
+});
+document.addEventListener("input", e => {
+  if (e.target.id !== "annTxt") return;
+  annTxt = e.target.value; const a = $("#annWa"); if (a) a.href = "https://wa.me/?text=" + encodeURIComponent(annTxt);
+});
 
 /* ===================== 🏆 DÉFIS D'ÉQUIPE (compteur personnel visible par tous) ===================== */
 let DEFIS = [];
@@ -3166,7 +3639,7 @@ function sheetMission(id){
   staticNames(m).forEach(n => { if (!e.live.some(x => x.prenom.toLowerCase() === n.toLowerCase())) people.unshift('<li><b>'+esc(n)+'</b><span class="tag">'+(m.statut === "bloquee" ? "🚧 bloque" : "👤 dessus")+'</span></li>'); });
   const take = e.statut === "libre" ? "🙋 Je prends" : "🙋 J'aide aussi";
   const locked = !mine && !tutoOk(m.projet);
-  openSheet('<div style="--c:'+esc(p.c||"#5FD3B0")+'"><div class="actions" style="margin-top:0"><span class="tag '+cls+'">'+esc(lab)+'</span>'+(p.nom ? '<span class="tag proj">'+esc(p.e)+' '+esc(p.nom)+'</span>' : '')+'</div>'+
+  openSheet('<div style="--c:'+esc(p.c||"#5FD3B0")+'"><div class="actions" style="margin-top:0"><span class="tag '+cls+'">'+esc(lab)+'</span>'+(p.nom ? '<span class="tag proj">'+esc(p.e)+' '+esc(p.nom)+'</span>' : '')+tagPourToi(m)+'</div>'+
     '<h2 id="sheetTitle">'+esc(m.titre)+'</h2>'+
     (locked ? '<div class="tt-lock">🔒 <b>Avant de prendre cette mission</b>, fais le tuto '+esc(p.nom)+' : quelques écrans et un mini-quiz (environ 2 min). Ensuite, « Je prends » se débloque.</div><div class="actions"><button class="btn" data-act="tuto" data-id="'+esc(m.projet)+'" data-then="'+m.id+'">📘 Faire le tuto '+esc(p.nom)+'</button></div>' : '')+
     (m.why ? '<div class="q"><h4>Pourquoi c\'est utile ?</h4><p>'+esc(m.why)+'</p></div>' : '')+
@@ -3251,7 +3724,7 @@ function fallback(txt){
   openSheet('<h2 id="sheetTitle">Copie ce texte</h2><textarea class="msg" id="fb" style="min-height:220px">'+esc(txt)+'</textarea><p class="note">Appuie longuement dans la zone puis « Tout sélectionner » et « Copier ».</p>');
   const f = $("#fb"); f.focus(); f.select();
 }
-let tt; function toast(t){ const e = $("#toast"); e.textContent = t; e.hidden = false; clearTimeout(tt); tt = setTimeout(() => e.hidden = true, 2600); }
+let tt; function toast(t){ if (BROUILLON && !/^🧪/.test(t) && Date.now() - BR_T < 2500) return; const e = $("#toast"); e.textContent = t; e.hidden = false; clearTimeout(tt); tt = setTimeout(() => e.hidden = true, 2600); }
 
 /* ===================== ADMIN ===================== */
 let tab = "missions";
@@ -3265,6 +3738,7 @@ const FIELDS = {
     ["titre","text","Titre de la mission"],
     ["projet","sel-projet","Projet lié"],
     ["type","sel-type","Catégorie"],
+    ["themes","themes","🎯 Thèmes (centres d'intérêt)","Vide = calculé tout seul (catégorie, projet, mots du titre). Touche des cases pour choisir toi-même : ça remplace le calcul."],
     ["fin","date","À faire avant le"],
     ["duree","text","Temps estimé","ex. 30 min, 1 h après les cours"],
     ["statut","sel-statut","Statut"],
@@ -3355,7 +3829,7 @@ async function getArt(){ return null; }
 
 function rowMeta(kind, x){
   if (kind === "missions"){ const p = proj(x.projet);
-    return '<span class="tag">'+esc(STATUTS[x.statut]||x.statut)+'</span><span>avant le '+fmt(x.fin)+'</span>'+(p.nom ? '<span>· '+esc(p.e)+' '+esc(p.nom)+'</span>' : '')+(x.qui ? '<span>· 👤 '+esc(x.qui)+'</span>' : ''); }
+    return '<span class="tag">'+esc(STATUTS[x.statut]||x.statut)+'</span><span>avant le '+fmt(x.fin)+'</span>'+(p.nom ? '<span>· '+esc(p.e)+' '+esc(p.nom)+'</span>' : '')+(x.qui ? '<span>· 👤 '+esc(x.qui)+'</span>' : '')+(() => { const it = intMission(x); return it.length ? '<span>· 🎯 '+esc(it.map(i => intById(i).e).join(""))+(String(x.themes || "").trim() ? '' : ' <i>auto</i>')+'</span>' : ''; })(); }
   if (kind === "dates") return '<span>'+fmt(x.d)+' '+String(x.d||"").slice(0,4)+'</span><span>· '+(x.certain ? "confirmée" : "⏳ à confirmer")+'</span>'+(daysTo(x.d) < -1 ? '<span class="tag">passée</span>' : '');
   if (kind === "defis" && parCfg(x)){ const pd = PAR_DATA[x.id];
     return '<span>🔗 Relié au parrainage</span>'+(pd && pd.ok ? '<span>· '+(+pd.participants||0)+' parrains</span><span>· '+(+pd.totalEquipe||0)+' / '+(num(x.objectif,5)*num(x.places,10))+' vérifiées</span>' : '<span>· classement indisponible</span>')+(x.fin ? '<span>· '+(daysTo(x.fin) >= 0 ? "jusqu'au " : "fini le ")+fmt(x.fin)+'</span>' : ''); }
@@ -3387,6 +3861,8 @@ function renderAdmin(){
   else if (tab === "semaine") body = adminSemaine();
   else if (tab === "equipe") body = adminEquipe();
   else if (tab === "histo") body = adminHisto();
+  else if (tab === "interets") body = adminInterets();
+  else if (tab === "prevenir") body = adminPrevenir();
   else body = adminList(tab);
   const stateCls = lastMsg.startsWith("⛔") ? "err" : (d ? "dirty" : "");
   el.innerHTML =
@@ -3396,7 +3872,7 @@ function renderAdmin(){
    '<button class="btn small ghost" data-adm="annuler"'+(d ? "" : " disabled")+'>↩️ Annuler les changements</button>'+
    '<button class="btn small ghost" data-adm="export">💾 Télécharger le fichier</button></div></div>'+
    connCard() + '<div class="adm-tabs chips" role="tablist">'+
-     [["missions","🙋 Missions ("+counts("missions")+")"],["dates","📅 Dates ("+counts("dates")+")"],["projets","🗂️ Projets ("+counts("projets")+")"],["regles","💬 Règles"],["defis","🏆 Défis ("+counts("defis")+")"],["sondages","🗳️ Sondages ("+counts("sondages")+")"],["coller","📋 Coller un bloc"],["reglages","🛠️ Réglages"],["direct","📥 En direct ("+liveRows().length+")"],["ameliorer","✨ Améliorer ("+suggestions().length+")"],["semaine","📣 Semaine"],["equipe","🏅 Équipe"],["histo","🛟 Historique"]]
+     [["missions","🙋 Missions ("+counts("missions")+")"],["dates","📅 Dates ("+counts("dates")+")"],["projets","🗂️ Projets ("+counts("projets")+")"],["regles","💬 Règles"],["defis","🏆 Défis ("+counts("defis")+")"],["sondages","🗳️ Sondages ("+counts("sondages")+")"],["coller","📋 Coller un bloc"],["reglages","🛠️ Réglages"],["direct","📥 En direct ("+liveRows().length+")"],["ameliorer","✨ Améliorer ("+suggestions().length+")"],["semaine","📣 Semaine"],["equipe","🏅 Équipe"],["interets","👥 Qui aime quoi"],["prevenir","📣 Nouveautés"],["histo","🛟 Historique"]]
      .map(([k,l]) => '<button class="chip" role="tab" data-tab="'+k+'" aria-pressed="'+(tab===k)+'">'+l+'</button>').join("")+
    '</div>'+ body;
 }
@@ -3528,6 +4004,9 @@ function fieldHTML(kind, x, [key, type, label, hint]){
   if (type === "check") return '<div class="fld check"><input type="checkbox" id="'+id+'" data-f="'+key+'" data-t="check"'+(v?" checked":"")+'><label for="'+id+'">'+label+'</label></div>';
   if (type === "color") return '<div class="fld"><label for="'+id+'">'+label+'</label><input type="color" id="'+id+'" data-f="'+key+'" value="'+esc(v||"#5FD3B0")+'"></div>';
   if (type === "date") return '<div class="fld"><label for="'+id+'">'+label+'</label>'+h+'<input type="date" id="'+id+'" data-f="'+key+'" value="'+esc(v)+'"></div>';
+  if (type === "themes"){ const cur = interetsDe(v), auto = intAuto(x);
+    return '<div class="fld"><label>'+label+'</label>'+h+'<span class="hint">Calcul automatique : '+esc(auto.length ? auto.map(i => intById(i).e+" "+intById(i).nom).join(", ") : "aucun")+'</span>'+
+      '<input type="hidden" id="'+id+'" data-f="'+key+'" value="'+esc(cur.join(", "))+'"><div class="int-grid int-f" role="group" aria-label="Thèmes de la mission">'+intChips(cur, "data-int-f")+'</div></div>'; }
   let pairs = null;
   if (type === "sel-projet") pairs = [["","— Aucun —"],["reunion","🗣️ Réunion"]].concat(DATA.projets.map(p => [p.id, (p.e||"")+" "+p.nom]));
   if (type === "sel-type") pairs = Object.entries(TYPES);
@@ -3561,6 +4040,7 @@ function openEditor(kind, id, preset){
       else o[k] = inp.value.trim();
     });
     if (editing.kind === "missions" && o.statut === "libre") o.qui = o.qui || "";
+    if (editing.kind === "missions" && !o.themes) delete o.themes;
     if (editing.kind === "missions" && o.statut === "faite" && !o.faiteLe) o.faiteLe = isoToday();
     if (editing.isNew) DATA[editing.kind].push(o);
     else { const arr = DATA[editing.kind]; const i = arr.findIndex(x => x.id === editing.id); if (i >= 0) arr[i] = o; }
@@ -3604,7 +4084,7 @@ const IMP_NOM = {missions:"🙋 Mission", dates:"📅 Date", projets:"🗂️ Pr
 const IMP_LAB = {
   missions: {titre:["Titre","mission","action","nom"], projet:["Projet","projet lie"], type:["Catégorie","type","pole"], fin:["Avant le","a faire avant le","date limite","deadline","echeance","date","fin"],
     duree:["Durée","temps","temps estime"], statut:["Statut","etat"], qui:["Qui","qui s en occupe","responsable","prenoms","prenom"], why:["Pourquoi","pourquoi c est utile","objectif"],
-    how:["Étapes","comment","comment faire","etapes a suivre"], besoin:["Il te faut","besoin","materiel"], aide:["Qui peut aider","aide","contact"], visible:["Affichage","visible"], id:["id","identifiant"]},
+    how:["Étapes","comment","comment faire","etapes a suivre"], besoin:["Il te faut","besoin","materiel"], aide:["Qui peut aider","aide","contact"], themes:["Thèmes","themes","theme","centres d interet","interets"], visible:["Affichage","visible"], id:["id","identifiant"]},
   dates: {d:["Date","le","jour","quand"], t:["Titre","evenement","nom","quoi"], s:["Détail","details","horaire","heure","lieu","infos","ou"], p:["Projet","projet lie"],
     certain:["Confirmée","confirme","certain","certaine"], visible:["Affichage","visible"], id:["id","identifiant"]},
   projets: {nom:["Nom","titre","projet"], e:["Emoji"], groupe:["Rubrique","groupe"], c:["Couleur"], bref:["En une phrase","bref","resume"], next:["Prochaine étape","next"], objectif:["Objectif"],
@@ -3666,6 +4146,7 @@ function impConv(kind, f, lines, warn){
   if (T === "color") return /^#[0-9a-f]{6}$/i.test(txt) ? txt : null;
   if (T === "sel-projet"){ const [id, w] = impProjet(txt); if (w) warn.push(w); return id; }
   if (IMP_PICK[T]){ if (!txt) return null; const v = IMP_PICK[T][nrm(txt)]; if (!v) warn.push(label + " « " + txt + " » pas reconnu : valeur par défaut gardée."); return v || null; }
+  if (T === "themes"){ if (!txt) return null; const v = interetsDe(txt); if (!v.length) warn.push(label + " « " + txt + " » pas reconnu : calcul automatique gardé."); return v.length ? v.join(", ") : null; }
   return txt.slice(0, 2000);
 }
 /* Découpe le texte collé en blocs {kind, pairs:[[clé, lignes]]} */
@@ -3810,7 +4291,7 @@ function adminColler(){
     '<div id="impOut">' + impOutHTML() + '</div>' +
     '<details class="adm-help" style="margin-top:14px"><summary><b>📖 Comment écrire un bloc</b></summary>' +
     '<p>Chaque bloc commence par <code>=== MISSION</code> ou <code>=== DATE</code> (aussi <code>=== PROJET</code>, <code>=== RÈGLE</code>). Puis une ligne par champ : <code>Champ : valeur</code>. Pour une liste (Étapes), mets une ligne par élément qui commence par <code>-</code>.</p>' +
-    '<p><b>Mission</b> : Titre, Projet, Catégorie (terrain, com, partenaires, idées), Avant le, Durée, Statut, Qui, Pourquoi, Étapes, Il te faut, Qui peut aider, Affichage.<br><b>Date</b> : Date, Titre, Détail (ou Lieu, Horaire), Projet, Confirmée (oui / non), Affichage.</p>' +
+    '<p><b>Mission</b> : Titre, Projet, Catégorie (terrain, com, partenaires, idées), Avant le, Durée, Statut, Qui, Pourquoi, Étapes, Il te faut, Qui peut aider, Thèmes (' + esc(INTERETS.map(x => x.id).join(", ")) + ' ; vide = automatique), Affichage.<br><b>Date</b> : Date, Titre, Détail (ou Lieu, Horaire), Projet, Confirmée (oui / non), Affichage.</p>' +
     '<p><b>Dates</b> acceptées : 20/11/2026, 20/11, 20 novembre, jeudi 20 novembre 2026, 2026-11-20, demain.<br><b>Projet</b> : son nom ou son identifiant : ' + esc(["reunion"].concat(DATA.projets.map(p => p.id)).join(", ")) + '.</p>' +
     '<p><b>Modifier</b> au lieu d\'ajouter : garde la ligne <code>id : …</code>. Dans ✏️ Modifier, le bouton « 📋 Copier en bloc texte » te la donne.</p>' +
     '<p><b>Avec une IA</b> (ChatGPT, Le Chat, Gemini…) : « 🤖 Copier la consigne », colle-la dans l\'IA avec la photo de l\'affiche ou le mail, puis colle sa réponse ici. Relis toujours l\'aperçu.</p>' +
@@ -4017,7 +4498,7 @@ async function exporter(apiUrl){
 let armed = null;
 document.addEventListener("click", e => {
   const tb = e.target.closest("[data-tab]");
-  if (tb){ tab = tb.dataset.tab; if (tab === "semaine") weekTxt = null; if (tab === "histo"){ HIST = null; histMsg = ""; } renderAdmin(); return; }
+  if (tb){ tab = tb.dataset.tab; if (tab === "semaine") weekTxt = null; if (tab === "histo"){ HIST = null; histMsg = ""; } if (tab === "interets" || tab === "prevenir"){ PROFILS = null; profMsg = ""; } if (tab === "prevenir"){ annTxt = null; notifMsg = ""; } renderAdmin(); return; }
   const fx = e.target.closest("[data-fix]");
   if (fx){ const s = suggestions()[+fx.dataset.k]; if (s) applyFix(s, fx.dataset.fix); return; }
   const b = e.target.closest("[data-adm]"); if (!b) return;
@@ -4057,6 +4538,15 @@ document.addEventListener("click", e => {
   if (a === "hist-load" || a === "poll-reset" || a === "defi-reset"){ const k2 = a + ":" + (b.dataset.v || id);
     if (armed !== k2){ armed = k2; b.textContent = a === "hist-load" ? "Sûr ? ↩️ Charger" : "Sûr ? 🧹"; b.classList.add("armed"); setTimeout(() => { if (armed === k2){ armed = null; renderAdmin(); } }, 3500); return; }
     armed = null; if (a === "hist-load") histLoad(b.dataset.v); else if (a === "defi-reset") defiReset(id); else pollReset(id); return; }
+  if (a === "ann-per"){ ANN_PER = b.dataset.v; annTxt = null; renderAdmin(); return; }
+  if (a === "ann-reset"){ annTxt = null; renderAdmin(); return; }
+  if (a === "ann-copy"){ const ms = annMissions(), ai = annInfo(); store.set(ANN_KEY, JSON.stringify({at: isoToday(), ids: ((ai && ai.ids) || []).concat(ms.map(m => m.id)).slice(-400)}));
+    return copy(annTxt || annText(ms), "Annonce copiée ✅ Colle-la dans le canal Annonces"); }
+  if (a === "notif-per"){ NOTIF_PER = b.dataset.v; NOTIF_OFF = new Set(); renderAdmin(); return; }
+  if (a === "notif-send"){ if (armed !== "notif"){ armed = "notif"; b.textContent = "Sûr ? 📣 Envoyer maintenant"; b.classList.add("armed"); setTimeout(() => { if (armed === "notif"){ armed = null; renderAdmin(); } }, 4000); return; }
+    armed = null; return notifSend(); }
+  if (a === "int-reload"){ PROFILS = null; profMsg = ""; loadProfils(); return; }
+  if (a === "int-copy") return copy(profText(), "Liste copiée ✅ Colle-la dans WhatsApp");
   if (a === "add") return openEditor(kind);
   if (a === "edit") return openEditor(kind, id);
   if (a === "del"){
@@ -4142,8 +4632,8 @@ document.addEventListener("click", e => {
 });
 $("#scrim").addEventListener("click", closeSheet);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#sheet").hidden) closeSheet(); });
-$("#me").addEventListener("change", e => { me = e.target.value.trim(); store.set("bde-me", me); meEdit = false; renderPublic(); });
-$("#meBox").addEventListener("submit", e => { e.preventDefault(); me = $("#me").value.trim(); store.set("bde-me", me); meEdit = false; renderPublic(); });
+$("#me").addEventListener("change", e => { setMe(e.target.value.trim()); });
+$("#meBox").addEventListener("submit", e => { e.preventDefault(); setMe($("#me").value.trim()); });
 $("#copyRecap").addEventListener("click", () => copy(recapText()));
 $("#backAdmin").addEventListener("click", e => { e.preventDefault(); location.hash = ADMIN_HASH.slice(1); });
 window.addEventListener("hashchange", () => { if (isAdmin() || !$("#admin").hidden || location.hash === "#apercu" || location.hash === "") route(); else if (PANES.includes(location.hash.slice(1))){ closeSheet(); setPane(location.hash.slice(1), false); } });
@@ -4159,8 +4649,11 @@ window.addEventListener("beforeunload", e => { if (wasAdmin && dirty() && !busy)
   if (API && !isAdmin()){
     liveState = "loading"; renderLiveInfo();
     await loadRemote();
+    newsInit();
     rerenderLive();
+    intRetry();
   }
+  if (!isAdmin()) pushStart();
   initLive();
   startParrainage();
   if ("serviceWorker" in navigator && (location.protocol === "https:" || /^(localhost|127\.0\.0\.1)$/.test(location.hostname))) navigator.serviceWorker.register("sw.js").catch(() => {});
